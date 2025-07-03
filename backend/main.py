@@ -15,11 +15,15 @@ if __name__ == "__main__":
     logger = Logger(intersections)
     emergency_handler = EmergencyHandler(intersections, signal_controller)
 
-    # Run simulation for 10 ticks
+    # Get topological order for synchronization
+    topo_order = graph_manager.topological_sort()
+
+    # Run simulation for 10 ticks with advanced synchronization
     for tick in range(10):
         print(f"\n--- Tick {tick+1} ---")
         sim_runner.tick()
-        signal_controller.tick()
+        signal_controller.update_lane_density()
+        signal_controller.synchronize_signals(topo_order)
         emergency_handler.handle_emergencies()
         # Log signal states
         for iid, intersection in intersections.items():

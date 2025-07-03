@@ -72,4 +72,38 @@ class SignalController:
     def tick(self):
         self.update_lane_density()
         for intersection_id in self.intersections:
-            self.compute_signal_schedule(intersection_id) 
+            self.compute_signal_schedule(intersection_id)
+
+    def push_signal_state(self, intersection_id, green_lanes, red_lanes, duration, timestamp):
+        intersection = self.intersections[intersection_id]
+        state = SignalState(green_lanes, red_lanes, duration, timestamp)
+        intersection.signal_state = state
+        return state
+
+    def synchronize_signals(self, topo_order):
+        # Coordinate signals in topological order for green wave
+        prev_green_lanes = set()
+        for intersection_id in topo_order:
+            intersection = self.intersections[intersection_id]
+            # Prefer to keep green for lanes aligned with previous green wave
+            heap = []
+            for lane in intersection.lanes:
+                avg_density = self.lane_windows[lane.id].average()
+                # Bonus if lane direction matches previous green
+                bonus = 1 if lane.id in prev_green_lanes else 0
+                heapq.heappush(heap, (-(avg_density + bonus), lane.id))
+            green_lanes = []
+            red_lanes = []
+            total_lanes = len(intersection.lanes)
+            for _ in range(min(2, total_lanes)):
+                if heap:
+                    _, lane_id = heapq.heappop(heap)
+                    green_lanes.append(lane_id)
+            while heap:
+                _, lane_id = heapq.heappop(heap)
+                red_lanes.append(lane_id)
+            max_density = max([self.lane_windows[lid].average() for lid in green_lanes], default=1)
+            duration = int(self.min_green + (self.max_green - self.min_green) * min(max_density / 10, 1))
+            state = SignalState(green_lanes, red_lanes, duration, time.time())
+            intersection.signal_state = state
+            prev_green_lanes = set(green_lanes) 

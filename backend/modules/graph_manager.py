@@ -61,4 +61,24 @@ class GraphManager:
             ('R20', 'Ambattur', 'Perambur'),
         ]
         for road_id, from_id, to_id in edges:
-            self.add_road(road_id, from_id, to_id, is_one_way=False, weight=1.0) 
+            self.add_road(road_id, from_id, to_id, is_one_way=False, weight=1.0)
+
+    def topological_sort(self):
+        # Kahn's algorithm for topological sorting
+        in_degree = {node: 0 for node in self.intersections}
+        for from_node, neighbors in self.adjacency.items():
+            for to_node in neighbors:
+                in_degree[to_node] += 1
+        queue = [node for node, deg in in_degree.items() if deg == 0]
+        sorted_order = []
+        while queue:
+            node = queue.pop(0)
+            sorted_order.append(node)
+            for neighbor in self.adjacency[node]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    queue.append(neighbor)
+        if len(sorted_order) != len(self.intersections):
+            # Cycle detected, fallback to arbitrary order
+            return list(self.intersections.keys())
+        return sorted_order 
