@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import MapView from "./components/MapView";
 import { getState, tick, reset } from "./api";
 
 function App() {
-  const [state, setState] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [state, setState] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(false);
 
   const fetchState = async () => {
     setLoading(true);
@@ -11,7 +12,7 @@ function App() {
     setLoading(false);
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchState();
   }, []);
 
@@ -28,6 +29,7 @@ function App() {
   return (
     <div style={{ padding: 24 }}>
       <h1>Smart Traffic Light Dashboard</h1>
+      <MapView />
       <button onClick={handleTick} disabled={loading}>Next Tick</button>
       <button onClick={handleReset} disabled={loading} style={{ marginLeft: 8 }}>Reset</button>
       <pre style={{ marginTop: 24, background: "#f0f0f0", padding: 16, color: "#000" }}>

@@ -12,9 +12,9 @@ class GraphManager:
         self.adjacency = {}      # id -> set of neighbor ids
         self._initialize_chennai_graph()
 
-    def add_intersection(self, intersection_id):
+    def add_intersection(self, intersection_id, coordinates=None):
         if intersection_id not in self.intersections:
-            self.intersections[intersection_id] = Intersection(intersection_id)
+            self.intersections[intersection_id] = Intersection(intersection_id, coordinates)
             self.adjacency[intersection_id] = set()
 
     def add_road(self, road_id, from_id, to_id, is_one_way=True, weight=1.0):
@@ -29,14 +29,28 @@ class GraphManager:
             self.roads[road_id].weight = new_weight
 
     def _initialize_chennai_graph(self):
-        # List of intersections
-        nodes = [
-            'Koyambedu', 'Anna Nagar', 'Egmore', 'T Nagar', 'Guindy', 'Adyar', 'Saidapet',
-            'Mylapore', 'Nungambakkam', 'Velachery', 'Tambaram', 'Perambur', 'Ambattur',
-            'Thiruvanmiyur', 'Vadapalani', 'Royapettah'
-        ]
+        # List of intersections with coordinates
+        coords = {
+            'Koyambedu': (13.0700, 80.2110),
+            'Anna Nagar': (13.0878, 80.2102),
+            'Egmore': (13.0827, 80.2622),
+            'T Nagar': (13.0336, 80.2305),
+            'Guindy': (13.0067, 80.2206),
+            'Adyar': (13.0064, 80.2570),
+            'Saidapet': (13.0291, 80.2209),
+            'Mylapore': (13.0339, 80.2698),
+            'Nungambakkam': (13.0604, 80.2412),
+            'Velachery': (12.9784, 80.2214),
+            'Tambaram': (12.9246, 80.1272),
+            'Perambur': (13.1132, 80.2337),
+            'Ambattur': (13.1143, 80.1480),
+            'Thiruvanmiyur': (12.9847, 80.2606),
+            'Vadapalani': (13.0496, 80.2127),
+            'Royapettah': (13.0524, 80.2616),
+        }
+        nodes = list(coords.keys())
         for node in nodes:
-            self.add_intersection(node)
+            self.add_intersection(node, coords[node])
         # List of roads (edges)
         edges = [
             ('R1', 'Koyambedu', 'Anna Nagar'),
