@@ -41,13 +41,19 @@ def get_history(intersection_id: str):
 
 @app.get("/shortest_path")
 def shortest_path(from_id: str = Query(..., alias="from"), to_id: str = Query(..., alias="to")):
-    path, total_distance = graph_manager.shortest_path(from_id, to_id)
-    # For now, estimate time as 1 unit distance = 1 minute
-    estimated_time = total_distance  # You can enhance this with signal/wait logic later
+    # Use dynamic weights based on current simulation state
+    path, total_distance, total_penalty = graph_manager.shortest_path_dynamic(from_id, to_id, intersections)
+    # Use realistic speed for emergency vehicles (e.g., 30 km/h)
+    avg_speed_kmh = 30
+    if not path or len(path) < 2:
+        return {"path": path, "total_distance_km": 0, "estimated_time_min": 0}
+    # Estimated time = travel time + penalties
+    travel_time = (total_distance / avg_speed_kmh) * 60  # in minutes
+    estimated_time = travel_time + total_penalty
     return {
         "path": path,
-        "total_distance": total_distance,
-        "estimated_time_min": estimated_time
+        "total_distance_km": round(total_distance, 2),
+        "estimated_time_min": round(estimated_time, 2)
     }
 
 @app.post("/tick")

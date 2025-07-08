@@ -1,5 +1,6 @@
 import React from "react";
 import MapView from "./components/MapView";
+import StatsPanel from "./components/StatsPanel";
 import { getState, tick, reset } from "./api";
 
 function App() {
@@ -32,9 +33,7 @@ function App() {
       <MapView />
       <button onClick={handleTick} disabled={loading}>Next Tick</button>
       <button onClick={handleReset} disabled={loading} style={{ marginLeft: 8 }}>Reset</button>
-      <pre style={{ marginTop: 24, background: "#f0f0f0", padding: 16, color: "#000" }}>
-        {state ? JSON.stringify(state, null, 2) : "Loading..."}
-      </pre>
+      <StatsPanel state={state} />
     </div>
   );
 }

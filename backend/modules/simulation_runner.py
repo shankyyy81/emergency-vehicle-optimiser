@@ -9,9 +9,9 @@ class SimulationRunner:
     Simulates vehicle generation and movement through the city graph.
     Updates lane densities and supports emergency vehicle generation.
     """
-    def __init__(self, graph_manager, vehicle_rate=5, emergency_rate=0.1):
+    def __init__(self, graph_manager, vehicle_rate=30, emergency_rate=0.2):
         self.graph_manager = graph_manager
-        self.vehicle_rate = vehicle_rate  # vehicles per tick
+        self.vehicle_rate = vehicle_rate  # vehicles per tick (increased for Chennai)
         self.emergency_rate = emergency_rate  # probability of emergency vehicle
         self.vehicle_id_counter = 0
         self.vehicles = {}  # vehicle_id -> Vehicle
@@ -30,14 +30,19 @@ class SimulationRunner:
         return lanes
 
     def generate_vehicle(self):
-        vehicle_type = random.choices(['car', 'bus', 'ambulance'], weights=[0.85, 0.1, 0.05])[0]
+        # Increase chance of bus and emergency vehicles for realism
+        vehicle_type = random.choices(['car', 'bus', 'ambulance'], weights=[0.7, 0.2, 0.1])[0]
         is_emergency = vehicle_type == 'ambulance' and random.random() < self.emergency_rate
         vehicle_id = f"V{self.vehicle_id_counter}"
         self.vehicle_id_counter += 1
         vehicle = Vehicle(vehicle_id, vehicle_type, is_emergency)
         self.vehicles[vehicle_id] = vehicle
-        # Assign to a random lane
-        lane = random.choice(self.active_lanes)
+        # Assign to a random lane, but bias toward already busy lanes
+        busy_lanes = [lane for lane in self.active_lanes if lane.traffic_density > 5]
+        if busy_lanes and random.random() < 0.5:
+            lane = random.choice(busy_lanes)
+        else:
+            lane = random.choice(self.active_lanes)
         lane.vehicles.append(vehicle)
         lane.traffic_density += 1
         return vehicle, lane

@@ -43,7 +43,7 @@ interface Vehicle {
 
 interface ShortestPathResult {
   path: string[];
-  total_distance: number;
+  total_distance_km: number;
   estimated_time_min: number;
 }
 
@@ -221,7 +221,7 @@ const MapView: React.FC = () => {
       {shortestPath && (
         <div style={{ marginTop: 8, background: '#f9fbe7', padding: 12, borderRadius: 8, color: '#000' }}>
           <b>Shortest Path:</b> {shortestPath.path.join(' → ')}<br />
-          <b>Total Distance:</b> {shortestPath.total_distance}<br />
+          <b>Total Distance (km):</b> {shortestPath.total_distance_km}<br />
           <b>Estimated Time (min):</b> {shortestPath.estimated_time_min}
         </div>
       )}
