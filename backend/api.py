@@ -5,6 +5,7 @@ from modules.simulation_runner import SimulationRunner
 from modules.signal_controller import SignalController
 from modules.emergency_handler import EmergencyHandler
 from modules.logger import Logger
+from fastapi import Query
 
 app = FastAPI()
 app.add_middleware(
@@ -37,6 +38,17 @@ def get_state():
 @app.get("/history/{intersection_id}")
 def get_history(intersection_id: str):
     return logger.to_json(intersection_id)
+
+@app.get("/shortest_path")
+def shortest_path(from_id: str = Query(..., alias="from"), to_id: str = Query(..., alias="to")):
+    path, total_distance = graph_manager.shortest_path(from_id, to_id)
+    # For now, estimate time as 1 unit distance = 1 minute
+    estimated_time = total_distance  # You can enhance this with signal/wait logic later
+    return {
+        "path": path,
+        "total_distance": total_distance,
+        "estimated_time_min": estimated_time
+    }
 
 @app.post("/tick")
 def tick():
