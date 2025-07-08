@@ -11,4 +11,12 @@ class Lane:
         self.id = id
         self.direction = direction
         self.vehicles = []  # List of Vehicle objects
-        self.traffic_density = 0 
+        self.traffic_density = 0
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'direction': self.direction,
+            'vehicles': [v.to_dict() for v in self.vehicles],
+            'traffic_density': self.traffic_density
+        } 

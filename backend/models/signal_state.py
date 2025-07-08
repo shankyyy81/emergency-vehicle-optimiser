@@ -11,4 +11,12 @@ class SignalState:
         self.green_lanes = green_lanes
         self.red_lanes = red_lanes
         self.duration = duration
-        self.timestamp = timestamp 
+        self.timestamp = timestamp
+
+    def to_dict(self):
+        return {
+            'green_lanes': self.green_lanes,
+            'red_lanes': self.red_lanes,
+            'duration': self.duration,
+            'timestamp': self.timestamp
+        } 

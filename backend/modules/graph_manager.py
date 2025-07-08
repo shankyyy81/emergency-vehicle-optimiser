@@ -82,3 +82,22 @@ class GraphManager:
             # Cycle detected, fallback to arbitrary order
             return list(self.intersections.keys())
         return sorted_order 
+
+    def shortest_path(self, start_id, end_id):
+        import heapq
+        queue = [(0, start_id, [])]
+        visited = set()
+        while queue:
+            (cost, node, path) = heapq.heappop(queue)
+            if node in visited:
+                continue
+            path = path + [node]
+            if node == end_id:
+                return path, cost
+            visited.add(node)
+            for neighbor in self.adjacency.get(node, []):
+                # Find the road between node and neighbor
+                road = next((r for r in self.roads.values() if ((r.from_intersection == node and r.to_intersection == neighbor) or (not r.is_one_way and r.from_intersection == neighbor and r.to_intersection == node))), None)
+                if road:
+                    heapq.heappush(queue, (cost + road.weight, neighbor, path))
+        return None, float('inf') 

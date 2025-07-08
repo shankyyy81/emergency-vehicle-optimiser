@@ -9,4 +9,11 @@ class Vehicle:
     def __init__(self, id, type, is_emergency=False):
         self.id = id
         self.type = type
-        self.is_emergency = is_emergency 
+        self.is_emergency = is_emergency
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'type': self.type,
+            'is_emergency': self.is_emergency
+        } 

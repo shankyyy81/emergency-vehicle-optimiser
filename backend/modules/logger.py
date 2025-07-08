@@ -50,4 +50,15 @@ class Logger:
 
     def get_lane_history(self, intersection_id, lane_id):
         # Returns a list of (tick, density) for a given lane
-        return [(tick, lane_densities[lane_id]) for tick, _, lane_densities in self.history[intersection_id] if lane_id in lane_densities] 
+        return [(tick, lane_densities[lane_id]) for tick, _, lane_densities in self.history[intersection_id] if lane_id in lane_densities]
+
+    def to_json(self, intersection_id):
+        # Export history for a given intersection as a list of dicts
+        return [
+            {
+                'tick': tick,
+                'signal_state': signal_state.to_dict() if signal_state else None,
+                'lane_densities': lane_densities
+            }
+            for tick, signal_state, lane_densities in self.history[intersection_id]
+        ] 
