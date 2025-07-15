@@ -40,7 +40,7 @@ if __name__ == "__main__":
     for iid in list(intersections.keys())[:3]:  # Show for first 3 intersections
         peak_tick, peak_lane, max_density = logger.get_peak_congestion(iid)
         avg_wait = logger.get_average_wait_time(iid)
-        print(f"Intersection {iid}: Peak congestion at tick {peak_tick} on lane {peak_lane} (density {max_density}), Avg. wait time: {avg_wait:.2f}s") 
+        print(f"Intersection {iid}: Peak congestion at tick {peak_tick} on lane {peak_lane} (density {max_density}), Avg. wait time: {avg_wait:.2f}s")
 
     # Demo: TrafficAnalyzer features for the first intersection
     first_iid = list(intersections.keys())[0]
@@ -54,5 +54,5 @@ if __name__ == "__main__":
 
     # Demo: Dijkstra's shortest path between two intersections
     start, end = list(intersections.keys())[0], list(intersections.keys())[1]
-    path, cost = graph_manager.shortest_path(start, end)
-    print(f"\nShortest path from {start} to {end}: {path} (total weight: {cost})") 
+    path, dist_sum, penalty_sum = graph_manager.shortest_path_dynamic(start, end, graph_manager.intersections)
+    print(f"\nShortest path from {start} to {end}: {path} (distance: {dist_sum}, penalty: {penalty_sum})") 

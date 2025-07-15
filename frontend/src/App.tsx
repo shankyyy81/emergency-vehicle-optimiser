@@ -30,7 +30,7 @@ function App() {
   return (
     <div style={{ padding: 24 }}>
       <h1>Smart Traffic Light Dashboard</h1>
-      <MapView />
+      <MapView state={state} />
       <button onClick={handleTick} disabled={loading}>Next Tick</button>
       <button onClick={handleReset} disabled={loading} style={{ marginLeft: 8 }}>Reset</button>
       <StatsPanel state={state} />

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
+import React, { useEffect, useState, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import type { LatLngExpression } from 'leaflet';
 import { getState } from '../api';
@@ -22,6 +22,12 @@ const redIcon = new L.Icon({
   popupAnchor: [1, -34],
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   shadowSize: [41, 41],
+});
+
+const carIcon = new L.DivIcon({
+  html: '🚗',
+  iconSize: [48, 48],
+  className: '',
 });
 
 const vehicleColor = '#1976d2';
@@ -47,7 +53,30 @@ interface ShortestPathResult {
   estimated_time_min: number;
 }
 
-const MapView: React.FC = () => {
+// Helper: get congestion color based on vehicle count
+const getCongestionColor = (count: number) => {
+  if (count < 20) return '#43a047'; // green
+  if (count <= 70) return '#fbc02d'; // yellow
+  return '#e53935'; // red
+};
+
+// Helper: create a colored DivIcon for congestion
+const createCongestionIcon = (count: number) => {
+  const color = getCongestionColor(count);
+  return new L.DivIcon({
+    html: `<div style="background:${color};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:16px;border:2px solid #222;box-shadow:0 0 6px ${color};">${count}</div>`,
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
+  });
+};
+
+interface MapViewProps {
+  state: any;
+}
+
+const MapView: React.FC<MapViewProps> = ({ state }) => {
   const [intersections, setIntersections] = useState<Intersection[]>([]);
   const [roads, setRoads] = useState<{ from: LatLngExpression; to: LatLngExpression }[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -55,51 +84,88 @@ const MapView: React.FC = () => {
   const [shortestPath, setShortestPath] = useState<ShortestPathResult | null>(null);
   const [pathCoords, setPathCoords] = useState<LatLngExpression[]>([]);
   const [loadingPath, setLoadingPath] = useState(false);
+  const [carPosition, setCarPosition] = useState<LatLngExpression | null>(null);
+  const [animating, setAnimating] = useState(false);
+  const animationRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Update intersections, roads, and vehicles when state prop changes
   useEffect(() => {
-    getState().then((data) => {
-      const ints: Intersection[] = Object.values(data.intersections).map((i: any) => ({
-        id: i.id,
-        coordinates: i.coordinates as LatLngExpression,
-        signal_state: i.signal_state,
-        lanes: i.lanes,
+    if (!state) return;
+    const ints: Intersection[] = Object.values(state.intersections).map((i: any) => ({
+      id: i.id,
+      coordinates: i.coordinates as LatLngExpression,
+      signal_state: i.signal_state,
+      lanes: i.lanes,
+    }));
+    setIntersections(ints);
+    if (state.roads) {
+      const rds = Object.values(state.roads).map((r: any) => ({
+        from: state.intersections[r.from_intersection].coordinates as LatLngExpression,
+        to: state.intersections[r.to_intersection].coordinates as LatLngExpression,
       }));
-      setIntersections(ints);
-      if (data.roads) {
-        const rds = Object.values(data.roads).map((r: any) => ({
-          from: data.intersections[r.from_intersection].coordinates as LatLngExpression,
-          to: data.intersections[r.to_intersection].coordinates as LatLngExpression,
-        }));
-        setRoads(rds);
-      } else {
-        setRoads(
-          ints.slice(1).map((to, idx) => ({
-            from: ints[idx].coordinates,
-            to: to.coordinates,
-          }))
-        );
-      }
-      const vehs: Vehicle[] = (data.vehicles || []).map((v: any) => {
-        let intersectionId = undefined;
-        for (const i of ints) {
-          for (const lane of i.lanes) {
-            if (lane.vehicles.some((veh: any) => veh.id === v.id)) {
-              intersectionId = i.id;
-              break;
-            }
+      setRoads(rds);
+    } else {
+      setRoads(
+        ints.slice(1).map((to, idx) => ({
+          from: ints[idx].coordinates,
+          to: to.coordinates,
+        }))
+      );
+    }
+    const vehs: Vehicle[] = (state.vehicles || []).map((v: any) => {
+      let intersectionId = undefined;
+      for (const i of ints) {
+        for (const lane of i.lanes) {
+          if (lane.vehicles.some((veh: any) => veh.id === v.id)) {
+            intersectionId = i.id;
+            break;
           }
-          if (intersectionId) break;
         }
-        return { ...v, intersectionId };
-      });
-      setVehicles(vehs);
+        if (intersectionId) break;
+      }
+      return { ...v, intersectionId };
     });
-  }, []);
+    setVehicles(vehs);
+  }, [state]);
+
+  // Animate car when pathCoords changes
+  useEffect(() => {
+    if (pathCoords.length > 1) {
+      setCarPosition(pathCoords[0]);
+      setAnimating(true);
+      let idx = 0;
+      if (animationRef.current) clearInterval(animationRef.current);
+      animationRef.current = setInterval(() => {
+        idx++;
+        if (idx < pathCoords.length) {
+          setCarPosition(pathCoords[idx]);
+        } else {
+          setAnimating(false);
+          if (animationRef.current) clearInterval(animationRef.current);
+        }
+      }, 1200); // 1200ms per segment (slower)
+    } else {
+      setCarPosition(null);
+      setAnimating(false);
+      if (animationRef.current) clearInterval(animationRef.current);
+    }
+    return () => {
+      if (animationRef.current) clearInterval(animationRef.current);
+    };
+  }, [pathCoords]);
 
   // Helper: get marker icon by signal state
   const getMarkerIcon = (signal_state: any) => {
     if (!signal_state) return redIcon;
     return (signal_state.green_lanes && signal_state.green_lanes.length > 0) ? greenIcon : redIcon;
+  };
+
+  // Helper: get emoji for vehicle type
+  const getVehicleEmoji = (type: string) => {
+    if (type === 'car') return '🚗'; // We'll wrap this in a blue background below
+    if (type === 'bus') return '🚌';
+    if (type === 'bike' || type === 'motorcycle') return '🏍️';
+    return '❓';
   };
 
   // Handle marker click for selection
@@ -163,48 +229,61 @@ const MapView: React.FC = () => {
         {pathCoords.length > 1 && (
           <Polyline positions={pathCoords} pathOptions={{ color: 'orange', weight: 6 }} />
         )}
-        {intersections.map((intersection) => (
-          <Marker
-            key={intersection.id}
-            position={intersection.coordinates}
-            icon={getMarkerIcon(intersection.signal_state)}
-            eventHandlers={{
-              click: () => handleMarkerClick(intersection.id),
-            }}
-          >
-            <Popup>
-              <b>{intersection.id}</b>
-              <br />
-              <b>Signal:</b> {intersection.signal_state ? `Green: [${intersection.signal_state.green_lanes.join(', ')}], Red: [${intersection.signal_state.red_lanes.join(', ')}]` : 'N/A'}
-              <br />
-              <b>Lanes:</b>
-              <ul>
-                {intersection.lanes.map((lane: any) => (
-                  <li key={lane.id}>{lane.id} (Density: {lane.traffic_density})</li>
-                ))}
-              </ul>
-              <b>Vehicles:</b>
-              <ul>
-                {vehicles.filter(v => v.intersectionId === intersection.id).map(v => (
-                  <li key={v.id} style={{ color: v.is_emergency ? emergencyColor : vehicleColor }}>
-                    {v.id} ({v.type}) {v.is_emergency ? '🚨' : ''}
-                  </li>
-                ))}
-              </ul>
-              <br />
-              <b>Click to {selected.from === intersection.id ? 'clear selection' : !selected.from ? 'select as start' : 'select as end'}</b>
-            </Popup>
-            {/* Show vehicles as colored dots at the intersection */}
-            {vehicles.filter(v => v.intersectionId === intersection.id).map((v, idx) => (
-              <CircleMarker
-                key={v.id}
-                center={intersection.coordinates}
-                radius={6 + (v.is_emergency ? 2 : 0)}
-                pathOptions={{ color: v.is_emergency ? emergencyColor : vehicleColor, fillColor: v.is_emergency ? emergencyColor : vehicleColor, fillOpacity: 1 }}
-              />
-            ))}
-          </Marker>
-        ))}
+        {/* Animated car marker */}
+        {carPosition && (
+          <Marker position={carPosition} icon={carIcon} zIndexOffset={1000} />
+        )}
+        {intersections.map((intersection) => {
+          // Get vehicles at this intersection
+          const vehiclesHere = vehicles.filter(v => v.intersectionId === intersection.id);
+          return (
+            <Marker
+              key={intersection.id}
+              position={intersection.coordinates}
+              icon={getMarkerIcon(intersection.signal_state)}
+              eventHandlers={{
+                click: () => handleMarkerClick(intersection.id),
+              }}
+            >
+              <Popup>
+                <b>{intersection.id}</b>
+                <br />
+                <b>Signal:</b> {intersection.signal_state ? `Green: [${intersection.signal_state.green_lanes.join(', ')}], Red: [${intersection.signal_state.red_lanes.join(', ')}]` : 'N/A'}
+                <br />
+                <b>Lanes:</b>
+                <ul>
+                  {intersection.lanes.map((lane: any) => (
+                    <li key={lane.id}>{lane.id} (Density: {lane.traffic_density})</li>
+                  ))}
+                </ul>
+                <b>Vehicles:</b>
+                <ul>
+                  {vehiclesHere.map(v => (
+                    <li key={v.id} style={{ color: v.is_emergency ? emergencyColor : vehicleColor }}>
+                      {v.id} ({v.type}) {v.is_emergency ? '🚨' : ''}
+                    </li>
+                  ))}
+                </ul>
+                <br />
+                <b>Click to {selected.from === intersection.id ? 'clear selection' : !selected.from ? 'select as start' : 'select as end'}</b>
+              </Popup>
+              {/* Congestion badge as a Tooltip next to the marker */}
+              <Tooltip direction="right" offset={[12, 0]} permanent>
+                <span style={{
+                  background: getCongestionColor(vehiclesHere.length),
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: 14,
+                  borderRadius: '50%',
+                  padding: '4px 10px',
+                  border: '2px solid #222',
+                  boxShadow: `0 0 6px ${getCongestionColor(vehiclesHere.length)}`,
+                  display: 'inline-block',
+                }}>{vehiclesHere.length}</span>
+              </Tooltip>
+            </Marker>
+          );
+        })}
       </MapContainer>
       <div style={{ marginTop: 16 }}>
         {selected.from && (

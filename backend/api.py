@@ -18,7 +18,7 @@ app.add_middleware(
 
 graph_manager = GraphManager()
 intersections = graph_manager.intersections
-sim_runner = SimulationRunner(graph_manager, vehicle_rate=10, emergency_rate=0.2)
+sim_runner = SimulationRunner(graph_manager, vehicle_rate=200, emergency_rate=0.1)
 signal_controller = SignalController(intersections, min_green=10, max_green=60, window_size=6)
 logger = Logger(intersections)
 emergency_handler = EmergencyHandler(intersections, signal_controller)
@@ -72,7 +72,7 @@ def reset():
     global graph_manager, intersections, sim_runner, signal_controller, logger, emergency_handler, topo_order
     graph_manager = GraphManager()
     intersections = graph_manager.intersections
-    sim_runner = SimulationRunner(graph_manager, vehicle_rate=10, emergency_rate=0.2)
+    sim_runner = SimulationRunner(graph_manager, vehicle_rate=200, emergency_rate=0.1)
     signal_controller = SignalController(intersections, min_green=10, max_green=60, window_size=6)
     logger = Logger(intersections)
     emergency_handler = EmergencyHandler(intersections, signal_controller)
