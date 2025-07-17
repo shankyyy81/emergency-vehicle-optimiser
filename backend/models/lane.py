@@ -12,11 +12,15 @@ class Lane:
         self.direction = direction
         self.vehicles = []  # List of Vehicle objects
         self.traffic_density = 0
+        self.incident = None  # e.g., 'accident', 'block', or None
+        self.incident_duration = 0  # ticks remaining
 
     def to_dict(self):
         return {
             'id': self.id,
             'direction': self.direction,
             'vehicles': [v.to_dict() for v in self.vehicles],
-            'traffic_density': self.traffic_density
+            'traffic_density': self.traffic_density,
+            'incident': self.incident,
+            'incident_duration': self.incident_duration
         } 

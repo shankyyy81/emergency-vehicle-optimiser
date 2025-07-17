@@ -69,6 +69,35 @@ class SimulationRunner:
         for _ in range(self.vehicle_rate):
             self.generate_vehicle()
         self.move_vehicles()
+        self.simulate_random_incidents()
+        self.update_incident_durations()
+
+    def simulate_random_incidents(self, probability=0.08):
+        # 8% chance per tick to create a random incident on a random lane
+        if random.random() < probability:
+            lane = random.choice(self.active_lanes)
+            if lane.incident is None:
+                lane.incident = random.choice(['accident', 'block'])
+                lane.incident_duration = random.randint(2, 5)
+
+    def update_incident_durations(self):
+        for lane in self.active_lanes:
+            if lane.incident:
+                lane.incident_duration -= 1
+                if lane.incident_duration <= 0:
+                    lane.incident = None
+                    lane.incident_duration = 0
+
+    def update_lane_from_traffic(self, intersection_id, direction, congestion=None, incident=None, incident_duration=None):
+        # Find the lane by intersection and direction
+        lane_id = f"{intersection_id}_{direction}"
+        lane = next((l for l in self.active_lanes if l.id == lane_id), None)
+        if lane:
+            if congestion is not None:
+                lane.traffic_density = congestion
+            if incident:
+                lane.incident = incident
+                lane.incident_duration = incident_duration or 3
 
     def run(self, ticks=10, delay=1):
         for _ in range(ticks):

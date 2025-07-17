@@ -23,6 +23,22 @@ const redIcon = new L.Icon({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   shadowSize: [41, 41],
 });
+const blueIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  shadowSize: [41, 41],
+});
+const yellowIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+  shadowSize: [41, 41],
+});
 
 const carIcon = new L.DivIcon({
   html: '🚗',
@@ -74,16 +90,17 @@ const createCongestionIcon = (count: number) => {
 
 interface MapViewProps {
   state: any;
+  darkMode: boolean;
+  setShortestPath: (path: any) => void;
+  setLoadingPath: (loading: boolean) => void;
 }
 
-const MapView: React.FC<MapViewProps> = ({ state }) => {
+const MapView: React.FC<MapViewProps> = ({ state, darkMode, setShortestPath, setLoadingPath }) => {
   const [intersections, setIntersections] = useState<Intersection[]>([]);
   const [roads, setRoads] = useState<{ from: LatLngExpression; to: LatLngExpression }[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selected, setSelected] = useState<{ from?: string; to?: string }>({});
-  const [shortestPath, setShortestPath] = useState<ShortestPathResult | null>(null);
   const [pathCoords, setPathCoords] = useState<LatLngExpression[]>([]);
-  const [loadingPath, setLoadingPath] = useState(false);
   const [carPosition, setCarPosition] = useState<LatLngExpression | null>(null);
   const [animating, setAnimating] = useState(false);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
@@ -222,6 +239,42 @@ const MapView: React.FC<MapViewProps> = ({ state }) => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {selected.from && (() => {
+          const fromIntersection = intersections.find(i => i.id === selected.from);
+          if (fromIntersection) {
+            return (
+              <CircleMarker
+                center={fromIntersection.coordinates}
+                radius={18}
+                pathOptions={{
+                  color: darkMode ? '#fff' : '#111',
+                  fillColor: darkMode ? '#fff' : '#111',
+                  fillOpacity: 0.18,
+                  weight: 6,
+                }}
+              />
+            );
+          }
+          return null;
+        })()}
+        {selected.to && (() => {
+          const toIntersection = intersections.find(i => i.id === selected.to);
+          if (toIntersection) {
+            return (
+              <CircleMarker
+                center={toIntersection.coordinates}
+                radius={18}
+                pathOptions={{
+                  color: darkMode ? '#fff' : '#111',
+                  fillColor: darkMode ? '#fff' : '#111',
+                  fillOpacity: 0.18,
+                  weight: 6,
+                }}
+              />
+            );
+          }
+          return null;
+        })()}
         {roads.map((road, idx) => (
           <Polyline key={idx} positions={[road.from, road.to]} pathOptions={{ color: 'blue' }} />
         ))}
@@ -236,11 +289,23 @@ const MapView: React.FC<MapViewProps> = ({ state }) => {
         {intersections.map((intersection) => {
           // Get vehicles at this intersection
           const vehiclesHere = vehicles.filter(v => v.intersectionId === intersection.id);
+          // Gather incidents for this intersection
+          const incidents = intersection.lanes
+            .filter((lane: any) => lane.incident)
+            .map((lane: any) => ({
+              type: lane.incident,
+              duration: lane.incident_duration,
+              direction: lane.direction,
+            }));
+          // Determine marker icon: blue for start, yellow for end, else by signal
+          let markerIcon = getMarkerIcon(intersection.signal_state);
+          if (selected.from === intersection.id) markerIcon = blueIcon;
+          else if (selected.to === intersection.id) markerIcon = yellowIcon;
           return (
             <Marker
               key={intersection.id}
               position={intersection.coordinates}
-              icon={getMarkerIcon(intersection.signal_state)}
+              icon={markerIcon}
               eventHandlers={{
                 click: () => handleMarkerClick(intersection.id),
               }}
@@ -281,29 +346,117 @@ const MapView: React.FC<MapViewProps> = ({ state }) => {
                   display: 'inline-block',
                 }}>{vehiclesHere.length}</span>
               </Tooltip>
+              {/* Incident icons next to the marker */}
+              {incidents.length > 0 && incidents.map((incident, idx) => (
+                <Tooltip key={idx} direction="top" offset={[0, -32 - idx * 24]} permanent>
+                  <span style={{
+                    fontSize: 28,
+                    marginLeft: 8,
+                    filter: 'drop-shadow(0 0 2px #fff)',
+                    cursor: 'pointer',
+                  }}
+                    title={`${incident.type.charAt(0).toUpperCase() + incident.type.slice(1)} (${incident.duration} ticks left) [${incident.direction}]`}
+                  >
+                    {incident.type === 'accident' ? '🚧' : '⚠️'}
+                  </span>
+                </Tooltip>
+              ))}
             </Marker>
           );
         })}
       </MapContainer>
-      <div style={{ marginTop: 16 }}>
+      <div
+        style={{
+          position: 'fixed',
+          left: 24,
+          bottom: 24,
+          zIndex: 9999,
+          background: '#fff',
+          borderRadius: 8,
+          padding: '8px 18px',
+          border: '1.5px solid #bbb',
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: 36,
+          color: '#111',
+          fontWeight: 500,
+          fontSize: 15,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+        }}
+      >
         {selected.from && (
-          <span>Start: <b>{selected.from}</b></span>
+          <span
+            className={`selection-label`}
+            style={{
+              color: '#111',
+              fontWeight: 600,
+              fontSize: 15,
+              marginRight: 14,
+            }}
+          >
+            Start: <b>{selected.from}</b>
+          </span>
         )}
         {selected.to && (
-          <span style={{ marginLeft: 16 }}>End: <b>{selected.to}</b></span>
+          <span
+            className={`selection-label`}
+            style={{
+              color: '#111',
+              fontWeight: 600,
+              fontSize: 15,
+              marginRight: 14,
+            }}
+          >
+            End: <b>{selected.to}</b>
+          </span>
         )}
         {(selected.from || selected.to) && (
-          <button style={{ marginLeft: 16 }} onClick={clearSelection}>Clear Selection</button>
+          <button
+            style={{
+              marginLeft: 0,
+              color: '#111',
+              background: '#f5f5f5',
+              border: '1.5px solid #bbb',
+              borderRadius: 6,
+              padding: '4px 14px',
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: 'pointer',
+            }}
+            onClick={clearSelection}
+            type="button"
+          >
+            Clear Selection
+          </button>
         )}
       </div>
-      {loadingPath && <div>Calculating shortest path...</div>}
-      {shortestPath && (
-        <div style={{ marginTop: 8, background: '#f9fbe7', padding: 12, borderRadius: 8, color: '#000' }}>
-          <b>Shortest Path:</b> {shortestPath.path.join(' → ')}<br />
-          <b>Total Distance (km):</b> {shortestPath.total_distance_km}<br />
-          <b>Estimated Time (min):</b> {shortestPath.estimated_time_min}
-        </div>
-      )}
+      {/* loadingPath && <div>Calculating shortest path...</div> */}
+      {/* shortestPath && ( */}
+      {/*   <div */}
+      {/*     className="shortest-path-info" */}
+      {/*     style={{ */}
+      {/*       position: 'absolute', */}
+      {/*       bottom: 20, */}
+      {/*       left: 20, */}
+      {/*       background: darkMode ? '#232a36' : '#fff', */}
+      {/*       color: darkMode ? '#fff' : '#111', */}
+      {/*       padding: '16px 24px', */}
+      {/*       borderRadius: '10px', */}
+      {/*       zIndex: 1000, */}
+      {/*       boxShadow: '0 2px 8px rgba(0,0,0,0.2)', */}
+      {/*       border: darkMode ? '2px solid #333a4d' : '2px solid #e3e3e3', */}
+      {/*       fontWeight: 600, */}
+      {/*       fontSize: '1.18rem', */}
+      {/*       maxWidth: 480, */}
+      {/*       textAlign: 'left', */}
+      {/*       letterSpacing: '0.01em', */}
+      {/*     }} */}
+      {/*   > */}
+      {/*     <b>Shortest Path:</b> {shortestPath.path.join(' → ')}<br /> */}
+      {/*     <b>Total Distance (km):</b> {shortestPath.total_distance_km}<br /> */}
+      {/*     <b>Estimated Time (min):</b> {shortestPath.estimated_time_min} */}
+      {/*   </div> */}
+      {/* ) */}
     </>
   );
 };

@@ -6,6 +6,7 @@ from modules.signal_controller import SignalController
 from modules.emergency_handler import EmergencyHandler
 from modules.logger import Logger
 from fastapi import Query
+from fastapi import Request
 
 app = FastAPI()
 app.add_middleware(
@@ -77,4 +78,18 @@ def reset():
     logger = Logger(intersections)
     emergency_handler = EmergencyHandler(intersections, signal_controller)
     topo_order = graph_manager.topological_sort()
-    return {"status": "reset complete"} 
+    return {"status": "reset complete"}
+
+@app.post("/update_traffic")
+async def update_traffic(request: Request):
+    data = await request.json()
+    # Expecting: {"intersection_id": str, "direction": str, "congestion": int, "incident": str, "incident_duration": int}
+    intersection_id = data.get("intersection_id")
+    direction = data.get("direction")
+    congestion = data.get("congestion")
+    incident = data.get("incident")
+    incident_duration = data.get("incident_duration")
+    if intersection_id and direction:
+        sim_runner.update_lane_from_traffic(intersection_id, direction, congestion, incident, incident_duration)
+        return {"status": "success", "updated": {"intersection_id": intersection_id, "direction": direction, "congestion": congestion, "incident": incident, "incident_duration": incident_duration}}
+    return {"status": "error", "message": "intersection_id and direction required"} 

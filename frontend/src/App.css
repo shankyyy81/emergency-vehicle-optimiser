@@ -1,8 +1,176 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+:root {
+  --color-bg: #f9fbe7;
+  --color-bg-panel: #fff;
+  --color-primary: #1976d2;
+  --color-primary-dark: #1565c0;
+  --color-text: #222;
+  --color-text-secondary: #1976d2;
+  --color-panel-shadow: 0 4px 24px rgba(25, 118, 210, 0.10);
+  --color-panel-border: #e3e3e3;
+  --color-stats-bg: rgba(255,255,255,0.97);
+  --color-stats-text: #1976d2;
+  --color-btn-bg: #1976d2;
+  --color-btn-text: #fff;
+  --color-btn-bg-hover: #1565c0;
+  --color-btn-disabled: #e3e3e3;
+  --color-btn-disabled-text: #aaa;
+  --color-path-info: #111;
+}
+
+.dark-mode {
+  --color-bg: #181c24;
+  --color-bg-panel: #232a36;
+  --color-primary: #90caf9;
+  --color-primary-dark: #1976d2;
+  --color-text: #f5f5f5;
+  --color-text-secondary: #90caf9;
+  --color-panel-shadow: 0 4px 24px rgba(25, 118, 210, 0.25);
+  --color-panel-border: #333a4d;
+  --color-stats-bg: rgba(35,42,54,0.97);
+  --color-stats-text: #90caf9;
+  --color-btn-bg: #1976d2;
+  --color-btn-text: #fff;
+  --color-btn-bg-hover: #1565c0;
+  --color-btn-disabled: #333a4d;
+  --color-btn-disabled-text: #888;
+  --color-path-info: #fff;
+}
+
+body, #root {
+  min-height: 100vh;
+  margin: 0;
+  font-family: 'Inter', 'Roboto', 'Open Sans', Arial, sans-serif;
+  background: linear-gradient(120deg, var(--color-bg) 0%, var(--color-bg-panel) 100%);
+  color: var(--color-text);
+}
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.map-main {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.bottom-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-stats-bg);
+  box-shadow: 0 -2px 16px var(--color-panel-shadow);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 32px;
+  padding: 18px 24px 18px 24px;
+  z-index: 20;
+  border-top: 1px solid var(--color-panel-border);
+}
+
+.bottom-panel .floating-stats {
+  position: static;
+  background: none;
+  color: var(--color-stats-text);
+  box-shadow: none;
+  padding: 0;
+  min-width: 320px;
+  font-size: 1.1rem;
+}
+
+.bottom-panel .controls-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.bottom-panel .controls-inline button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--color-btn-bg);
+  color: var(--color-btn-text);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.bottom-panel .controls-inline button:disabled {
+  background: var(--color-btn-disabled);
+  color: var(--color-btn-disabled-text);
+  cursor: not-allowed;
+}
+.bottom-panel .controls-inline button:hover:not(:disabled) {
+  background: var(--color-btn-bg-hover);
+  color: var(--color-btn-text);
+}
+
+.shortest-path-info {
+  background: var(--color-bg-panel, #fff);
+  color: var(--color-path-info, #111);
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 16px 24px;
+  margin: 18px auto 0 auto;
+  font-size: 1.18rem;
+  font-weight: 600;
+  border: 2px solid var(--color-panel-border, #e3e3e3);
+  display: block;
+  max-width: 480px;
+  text-align: left;
+  letter-spacing: 0.01em;
+}
+
+.dark-mode .shortest-path-info {
+  background: #232a36;
+  color: #fff;
+  border: 2px solid #333a4d;
+}
+
+.selection-label.dark {
+  color: #fff !important;
+}
+
+@media (max-width: 900px) {
+  .bottom-panel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 10px 4px;
+  }
+  .bottom-panel .floating-stats {
+    min-width: unset;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .controls-overlay {
+    top: 4px;
+    left: 4px;
+    padding: 6px 4px;
+    border-radius: 8px;
+  }
+  .floating-stats {
+    top: 4px;
+    right: 4px;
+    min-width: unset;
+    width: 98vw;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    padding: 8px 4px;
+  }
 }
 
 .logo {

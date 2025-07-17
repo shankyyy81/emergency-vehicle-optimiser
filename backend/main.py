@@ -40,7 +40,7 @@ if __name__ == "__main__":
     for iid in list(intersections.keys())[:3]:  # Show for first 3 intersections
         peak_tick, peak_lane, max_density = logger.get_peak_congestion(iid)
         avg_wait = logger.get_average_wait_time(iid)
-        print(f"Intersection {iid}: Peak congestion at tick {peak_tick} on lane {peak_lane} (density {max_density}), Avg. wait time: {avg_wait:.2f}s")
+        print(f"Intersection {iid}: Peak congestion at tick {peak_tick} on lane {peak_lane} (density {max_density}), Avg. wait time: {avg_wait:.2f}s") 
 
     # Demo: TrafficAnalyzer features for the first intersection
     first_iid = list(intersections.keys())[0]
